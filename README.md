@@ -1,5 +1,7 @@
 # LLM Wiki
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 > Cross-device, cross-agent personal knowledge operating system.
 
 Drop raw materials — articles, papers, screenshots, audio, URLs — into `raw/`. Your AI agent reads, summarizes, links concepts, and maintains a structured Markdown wiki automatically. Query it like a second brain. Lint it to keep it healthy. Review it to see how your knowledge grows.
