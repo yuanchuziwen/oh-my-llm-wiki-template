@@ -100,11 +100,36 @@ On first launch, the agent detects your local environment, checks required tools
 | Pandoc | Format conversion | `brew install pandoc` |
 | [Jina Reader](https://r.jina.ai) | URL → Markdown | Free API, no install |
 
-### 5. Start ingesting
+### 5. Verify it works
+
+Fetch Karpathy's original article as your first raw material:
+
+```bash
+curl -sL "https://r.jina.ai/https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f" \
+  > ~/llm-wiki/raw/articles/karpathy-llm-wiki.md
+```
+
+Then tell your agent:
 
 ```
-> I put an article in raw/articles/. Please ingest it.
+帮我 ingest raw/articles/karpathy-llm-wiki.md
 ```
+
+Check that the agent:
+- [ ] Created `wiki/sources/karpathy-llm-wiki.md`
+- [ ] Created several `wiki/concepts/*.md` pages (e.g. llm-wiki, ingest, lint, rag)
+- [ ] Created `wiki/entities/andrej-karpathy.md`
+- [ ] Updated `wiki/index.md` with all new pages
+- [ ] Appended an ingest record to `wiki/log.md`
+- [ ] All pages have correct YAML frontmatter and `[[wiki-links]]`
+
+Then test a query:
+
+```
+LLM Wiki 和 RAG 有什么区别？
+```
+
+The agent should read `wiki/index.md` → drill into relevant pages → answer with `[[wiki-link]]` citations → optionally save to `wiki/outputs/`.
 
 ## Wiki Page Format
 

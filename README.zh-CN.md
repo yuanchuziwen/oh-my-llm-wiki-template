@@ -98,11 +98,36 @@ cd ~/llm-wiki && claude
 | Pandoc | 格式转换 | `brew install pandoc` |
 | [Jina Reader](https://r.jina.ai) | URL → Markdown | 免费 API，无需安装 |
 
-### 5. 开始摄入
+### 5. 验证是否正常工作
+
+用 Karpathy 的原文作为第一篇资料：
+
+```bash
+curl -sL "https://r.jina.ai/https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f" \
+  > ~/llm-wiki/raw/articles/karpathy-llm-wiki.md
+```
+
+然后告诉 Agent：
 
 ```
-> 我在 raw/articles/ 放了一篇文章，帮我 ingest。
+帮我 ingest raw/articles/karpathy-llm-wiki.md
 ```
+
+检查 Agent 是否：
+- [ ] 创建了 `wiki/sources/karpathy-llm-wiki.md`
+- [ ] 创建了若干 `wiki/concepts/*.md` 页面（如 llm-wiki、ingest、lint、rag）
+- [ ] 创建了 `wiki/entities/andrej-karpathy.md`
+- [ ] 更新了 `wiki/index.md`，收录所有新页面
+- [ ] 在 `wiki/log.md` 追加了 ingest 记录
+- [ ] 所有页面有正确的 YAML frontmatter 和 `[[wiki-links]]` 互引
+
+再测试一次查询：
+
+```
+LLM Wiki 和 RAG 有什么区别？
+```
+
+Agent 应该先查 `wiki/index.md` → 深入阅读相关页面 → 用 `[[wiki-link]]` 引用回答 → 可选存入 `wiki/outputs/`。
 
 ## Wiki 页面格式
 
