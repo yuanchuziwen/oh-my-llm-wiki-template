@@ -1,0 +1,30 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# 大文件（PDF/图片/音频/视频）不进 Git，使用 Git LFS 或本地保留
+raw/**/*.pdf
+raw/**/*.mp3
+raw/**/*.wav
+raw/**/*.m4a
+raw/**/*.ogg
+raw/**/*.mp4
+raw/**/*.mov
+raw/**/*.mkv
+raw/**/*.webm
+raw/**/*.avi
+raw/**/*.png
+raw/**/*.jpg
+raw/**/*.jpeg
+raw/**/*.gif
+raw/**/*.webp
+
+# Graphify 缓存
+graphify-out/cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Obsidian 配置（各设备独立）
+.obsidian/

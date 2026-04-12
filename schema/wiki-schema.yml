@@ -1,0 +1,312 @@
+# =============================================================================
+# LLM Wiki Schema — Single Source of Truth
+# =============================================================================
+# 本文件定义 wiki 的全部规范。所有平台 mapper（CLAUDE.md / AGENTS.md /
+# .cursor/rules）均从本文件派生，不得独立定义规则。
+#
+# 修改本文件后，运行 `schema/generate-mappers.sh` 重新生成各平台文件。
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# 1. 项目结构
+# ---------------------------------------------------------------------------
+structure:
+  raw:
+    description: "原始资料层（只读，Agent 不得修改）"
+    subdirs:
+      articles:   "文章、博客"
+      papers:     "论文（PDF + BibTeX）"
+      books:      "书籍笔记、读书摘录"
+      screenshots: "截图、照片、白板拍照"
+      audio:      "录音、播客、视频转录"
+      clippings:  "网页剪藏（Web Clipper / Jina Reader）"
+      misc:       "其他未分类资料"
+
+  wiki:
+    description: "Wiki 层（Agent 写入和维护，用户只读浏览）"
+    navigation:
+      - index.md:   "全局目录 — 所有页面的入口"
+      - log.md:     "操作日志 — 每次操作的记录"
+    subdirs:
+      concepts:  "概念页 — 每个重要概念一个文件"
+      entities:  "实体页 — 人物、项目、公司、工具"
+      sources:   "来源页 — 每个原始资料的摘要"
+      outputs:   "产出页 — 查询结果、综述、对比分析"
+      areas:     "领域页 — 生活领域（健身、财务、阅读等）"
+      journal:   "时间线 — 周报、月度回顾、年度总结"
+
+  graph:
+    description: "知识图谱层（可选，Graphify 生成）"
+    files:
+      - graph.json:       "结构化图谱，支持遍历查询"
+      - GRAPH_REPORT.md:  "图谱摘要，god nodes + 社区结构"
+
+  schema:
+    description: "Schema 层（规范和配置，各平台 mapper 文件）"
+
+# ---------------------------------------------------------------------------
+# 2. 页面规范
+# ---------------------------------------------------------------------------
+pages:
+  # 文件命名：kebab-case，纯英文，无空格
+  naming: "kebab-case"
+  # 示例：llm-wiki.md, andrej-karpathy.md, graphify-readme.md
+  naming_examples:
+    - "llm-wiki.md"
+    - "andrej-karpathy.md"
+    - "fitness-strength-training.md"
+
+  # 页面之间使用 Obsidian 风格 wiki-link
+  link_style: "[[relative-path]]"
+  link_examples:
+    - "[[concepts/llm-wiki]]"
+    - "[[entities/andrej-karpathy]]"
+    - "[[sources/karpathy-gist]]"
+
+  # YAML Frontmatter（所有页面必须包含）
+  frontmatter:
+    required:
+      title:    "string  — 页面标题"
+      type:     "enum    — concept | entity | source | output | area | journal"
+      created:  "date    — 创建日期 YYYY-MM-DD"
+    optional:
+      updated:  "date    — 最后更新日期 YYYY-MM-DD"
+      tags:     "list    — 标签列表"
+      sources:  "list    — 引用的原始资料路径（相对于项目根）"
+      related:  "list    — 关联页面路径"
+      status:   "enum    — active | stale | stub"
+      author:   "string  — 原始资料的作者（仅 source 类型）"
+
+  # 各类型页面模板
+  templates:
+    source:
+      sections:
+        - "## 摘要"
+        - "## 关键要点"
+        - "## 相关概念"
+        - "## 原文引用"
+
+    concept:
+      sections:
+        - "## 定义"
+        - "## 详细说明"
+        - "## 来源"
+        - "## 关联概念"
+
+    entity:
+      sections:
+        - "## 简介"
+        - "## 关键贡献 / 产品 / 事件"
+        - "## 关联"
+
+    output:
+      sections:
+        - "## 问题"
+        - "## 分析"
+        - "## 结论"
+        - "## 引用的 Wiki 页面"
+
+    area:
+      sections:
+        - "## 概述"
+        - "## 当前状态"
+        - "## 目标"
+        - "## 相关资源"
+
+    journal:
+      sections:
+        - "## 本期概况"
+        - "## 新增知识"
+        - "## 活跃领域"
+        - "## 沉寂领域"
+        - "## 发现与洞察"
+
+# ---------------------------------------------------------------------------
+# 3. 导航文件规范
+# ---------------------------------------------------------------------------
+navigation:
+  index:
+    file: "wiki/index.md"
+    description: "全局目录，按类型分组，每页一行：链接 + 一句话摘要"
+    format: |
+      # Wiki Index
+
+      > 最后更新：{date} | 共 {count} 个页面
+
+      ## Concepts
+      - [[concepts/xxx]] — 一句话描述
+
+      ## Entities
+      - [[entities/xxx]] — 一句话描述
+
+      ## Sources
+      - [[sources/xxx]] — 一句话描述
+
+      ## Outputs
+      - [[outputs/xxx]] — 一句话描述
+
+      ## Areas
+      - [[areas/xxx]] — 一句话描述
+
+      ## Journal
+      - [[journal/xxx]] — 一句话描述
+    rules:
+      - "每次 ingest / query / lint 操作后必须更新"
+      - "按类型分组，组内按字母排序"
+      - "每个条目格式：[[path]] — 一句话摘要（不超过 30 字）"
+
+  log:
+    file: "wiki/log.md"
+    description: "操作日志，每次操作追加一条记录"
+    format: |
+      # Wiki Log
+
+      ## [{date}] {operation} | {title}
+      - 新增/更新的页面列表
+      - 简要说明
+    rules:
+      - "新记录追加在文件顶部（最新在前）"
+      - "operation 取值：ingest / query / lint / review"
+      - "日期格式：YYYY-MM-DD"
+
+# ---------------------------------------------------------------------------
+# 4. 核心操作
+# ---------------------------------------------------------------------------
+operations:
+  ingest:
+    description: "将原始资料摄入 wiki"
+    trigger:
+      - "用户将文件放入 raw/ 并告知 Agent"
+      - "用户提供 URL，Agent 通过 Jina Reader 获取内容"
+      - "用户直接粘贴文本内容"
+    steps:
+      - "读取原始资料，理解内容"
+      - "在 wiki/sources/ 创建来源页（使用 source 模板）"
+      - "识别涉及的概念，更新或创建 wiki/concepts/ 页面"
+      - "识别涉及的实体，更新或创建 wiki/entities/ 页面"
+      - "识别涉及的生活领域，更新 wiki/areas/ 页面（如适用）"
+      - "更新 wiki/index.md"
+      - "在 wiki/log.md 顶部追加操作记录"
+    rules:
+      - "一个资料可能涉及 5-15 个页面的创建或更新"
+      - "更新已有页面时，保留原有内容，在相关章节补充新信息"
+      - "新建概念页时如信息不足，status 设为 stub"
+      - "绝不修改 raw/ 中的文件"
+
+  query:
+    description: "基于 wiki 回答用户问题"
+    steps:
+      - "先读 wiki/index.md 定位相关页面"
+      - "深入阅读相关页面"
+      - "如存在 graph/graph.json，查询图谱发现隐含关联"
+      - "综合回答，引用具体 wiki 页面（使用 [[link]] 格式）"
+      - "如回答有独立价值，存为 wiki/outputs/ 新页面"
+      - "更新 wiki/index.md 和 wiki/log.md"
+    rules:
+      - "回答必须基于 wiki 中已有的知识，不得凭空编造"
+      - "如 wiki 中信息不足，明确告知用户并建议补充资料"
+      - "引用时使用 wiki-link 指向具体页面"
+
+  lint:
+    description: "检查 wiki 健康状态并修复问题"
+    levels:
+      light:
+        description: "轻量检查（确定性脚本，零 token）"
+        trigger: "每次 ingest 后自动执行"
+        checks:
+          - "坏链检测：[[link]] 指向的文件是否存在"
+          - "孤立页面：有无页面没有任何入链"
+          - "index.md 一致性：是否所有 wiki 页面都已收录"
+          - "frontmatter 完整性：必填字段是否齐全"
+      deep:
+        description: "深度检查（LLM Agent）"
+        trigger: "用户主动触发"
+        checks:
+          - "页面间矛盾检测：不同页面对同一概念的描述是否冲突"
+          - "过时信息标记：新资料是否覆盖了旧结论"
+          - "stub 页面补全：信息不足的页面是否可以从已有资料中补充"
+          - "缺失概念发现：页面中提到但未建页的概念"
+      growth:
+        description: "知识生长（LLM Agent，周级/月级）"
+        trigger: "定期执行或用户触发"
+        checks:
+          - "跨页面隐含关联发现"
+          - "知识缺口识别：哪些领域资料稀薄"
+          - "综述建议：哪些主题已有足够资料可生成综述"
+
+  review:
+    description: "定期知识回顾，生成 journal 页面"
+    cadence:
+      weekly:  "wiki/journal/YYYY-Www.md"
+      monthly: "wiki/journal/YYYY-MM.md"
+      yearly:  "wiki/journal/YYYY.md"
+    content:
+      - "本期新增知识统计"
+      - "活跃领域 vs 沉寂领域"
+      - "跨领域关联发现"
+      - "知识版图变化"
+
+# ---------------------------------------------------------------------------
+# 5. 同步协议
+# ---------------------------------------------------------------------------
+sync:
+  backend: "git"
+  protocol:
+    session_start:
+      - "git pull --rebase"
+    session_end:
+      - "git add wiki/ graph/"
+      - "git commit -m '[wiki] {operation}: {summary}'"
+      - "git push"
+    rules:
+      - "raw/ 中的大文件（PDF/图片/音频）通过 .gitignore 排除或使用 Git LFS"
+      - "wiki/ 和 graph/ 的所有变更必须提交"
+      - "commit message 格式：[wiki] {ingest|query|lint|review}: 简要描述"
+
+  conflict_resolution:
+    level_1:
+      name: "Git auto-merge"
+      description: "不同文件或同文件不同位置的修改，Git 自动合并"
+    level_2:
+      name: "LLM resolve"
+      description: "同文件同位置冲突，Agent 读取冲突内容并语义合并"
+    level_3:
+      name: "人工介入"
+      description: "Agent 无法判断时，标记为待解决，下次会话提示用户"
+
+# ---------------------------------------------------------------------------
+# 6. 多模态处理
+# ---------------------------------------------------------------------------
+multimodal:
+  markdown:  "直接读取"
+  plaintext: "直接读取"
+  pdf:       "提取文本 + 引用挖掘（marker-pdf 或 Pandoc）"
+  image:     "Vision 模型识别内容（截图、图表、白板照片）"
+  audio:     "Whisper 本地转录 → 文本处理"
+  video:     "提取音轨 → Whisper 转录 → 文本处理"
+  url:       "Jina Reader (r.jina.ai) 转 Markdown → 文本处理"
+
+# ---------------------------------------------------------------------------
+# 7. 平台 Mapper 配置
+# ---------------------------------------------------------------------------
+mappers:
+  claude_code:
+    target: "CLAUDE.md"
+    location: "项目根目录"
+    mechanism: "Claude Code 自动加载项目根的 CLAUDE.md"
+
+  cursor:
+    target: ".cursor/rules/wiki.mdc"
+    location: "schema/.cursor/rules/wiki.mdc"
+    mechanism: "alwaysApply: true，Cursor 每次对话自动注入"
+
+  agents_md:
+    target: "AGENTS.md"
+    location: "项目根目录"
+    mechanism: "Codex / OpenClaw / Aider / Factory Droid / Trae 自动加载"
+    platforms:
+      - "Codex"
+      - "OpenClaw"
+      - "Aider"
+      - "Factory Droid"
+      - "Trae"

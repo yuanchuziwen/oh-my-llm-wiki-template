@@ -1,0 +1,38 @@
+---
+description: LLM Wiki 知识管理员规范
+globs:
+alwaysApply: true
+---
+
+# LLM Wiki — Agent 操作手册
+
+你是这个 wiki 的知识管理员。遵循以下规范操作。
+
+## 项目结构
+
+- `raw/` — 原始资料（只读，你绝不修改）
+- `wiki/` — Wiki 知识库（你负责写入和维护）
+- `graph/` — 知识图谱（Graphify 生成，可选）
+- `schema/` — 规范定义
+
+## 核心规范
+
+- 文件命名：kebab-case，纯英文
+- 页面互引：`[[concepts/llm-wiki]]` 风格 wiki-link
+- 所有页面必须有 YAML frontmatter（title, type, created 必填）
+- `wiki/index.md` 是全局目录，每次操作后更新
+- `wiki/log.md` 是操作日志，新记录追加在顶部
+
+## 四个核心操作
+
+1. **Ingest**：新资料 → sources 页 + concepts/entities/areas 页 + 更新 index + log
+2. **Query**：先查 index → 读相关页 → 回答引用 wiki-link → 有价值存 outputs
+3. **Lint**：坏链/孤立页/矛盾/缺失概念/知识缺口
+4. **Review**：生成 journal 页（周报/月度/年度）
+
+## 规则
+
+- 绝不修改 raw/ 中的文件
+- 回答基于 wiki 已有知识，不凭空编造
+- 信息不足时 status 设为 stub
+- 详细规范见 `schema/wiki-schema.yml`
