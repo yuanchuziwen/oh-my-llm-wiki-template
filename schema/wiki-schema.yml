@@ -310,3 +310,94 @@ mappers:
       - "Aider"
       - "Factory Droid"
       - "Trae"
+
+# ---------------------------------------------------------------------------
+# 8. 工具依赖
+# ---------------------------------------------------------------------------
+# 声明式定义，Agent 在新设备首次启动时检测并记录到 .local/env.json
+tooling:
+  required:
+    git:
+      purpose: "版本控制 + 跨设备同步"
+      check: "git --version"
+      install:
+        darwin: "xcode-select --install"
+        linux:  "sudo apt install git"
+    ripgrep:
+      purpose: "Agent 搜索底层工具"
+      check: "rg --version"
+      install:
+        darwin: "brew install ripgrep"
+        linux:  "sudo apt install ripgrep"
+
+  recommended:
+    obsidian:
+      purpose: "Wiki 浏览和手动编辑"
+      check: "ls /Applications/Obsidian.app 2>/dev/null || ls ~/Applications/Obsidian.app 2>/dev/null || which obsidian"
+      install:
+        darwin: "brew install --cask obsidian"
+        linux:  "snap install obsidian"
+      note: "wiki/ 目录可直接作为 Obsidian vault 打开"
+    pandoc:
+      purpose: "文档格式转换（Markdown ↔ HTML/PDF）"
+      check: "pandoc --version"
+      install:
+        darwin: "brew install pandoc"
+        linux:  "sudo apt install pandoc"
+    jina_reader:
+      purpose: "URL → Markdown 转换"
+      check: "curl -s -o /dev/null -w '%{http_code}' https://r.jina.ai/https://example.com"
+      install: "无需安装，免费 API：https://r.jina.ai/{url}"
+
+  optional:
+    graphify:
+      purpose: "知识图谱生成"
+      check: "python3 -c 'import graphify' 2>/dev/null"
+      install:
+        all: "pip install graphifyy"
+      when: "想要知识图谱增强时"
+    qmd:
+      purpose: "本地语义搜索（BM25 + 向量混合）"
+      check: "qmd --version"
+      install:
+        all: "npm install -g @tobilu/qmd"
+      when: "wiki 积累到几百篇后"
+    marker_pdf:
+      purpose: "高质量 PDF 文本提取"
+      check: "marker --version 2>/dev/null || python3 -c 'import marker' 2>/dev/null"
+      install:
+        all: "pip install marker-pdf"
+      when: "有大量 PDF 资料需要摄入时"
+    zotero:
+      purpose: "学术论文管理"
+      check: "ls /Applications/Zotero.app 2>/dev/null"
+      install:
+        darwin: "brew install --cask zotero"
+      when: "有学术论文管理需求时"
+
+# ---------------------------------------------------------------------------
+# 9. 环境检测
+# ---------------------------------------------------------------------------
+# Agent 首次在新设备启动时自动执行，结果存入 .local/env.json
+environment:
+  detection_trigger: "会话开始时检查 .local/env.json 是否存在"
+  output_file: ".local/env.json"
+  output_format:
+    device_name: "string — 设备标识（hostname）"
+    platform: "string — darwin | linux | windows"
+    detected_at: "string — ISO 8601 时间戳"
+    tools:
+      # 每个工具：{ installed: bool, version: string|null, path: string|null }
+      git: "{ installed, version, path }"
+      rg: "{ installed, version, path }"
+      obsidian: "{ installed }"
+      pandoc: "{ installed, version }"
+      graphify: "{ installed, version }"
+      # ...
+    agent_platform: "string — claude-code | cursor | openclaw | codex | aider"
+  rules:
+    - ".local/ 目录加入 .gitignore，不跨设备同步"
+    - "每台设备独立检测，独立记录"
+    - "缺少 required 工具时提示用户安装"
+    - "缺少 recommended 工具时建议安装但不阻断"
+    - "optional 工具仅在需要时提示"

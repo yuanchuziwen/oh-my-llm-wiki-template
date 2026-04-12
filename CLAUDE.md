@@ -89,5 +89,39 @@ status: active | stale | stub  # 可选
 | 音频/视频 | Whisper 转录 |
 | URL | Jina Reader 转 Markdown |
 
+## 环境检测（首次启动）
+
+每次会话开始时，检查 `.local/env.json` 是否存在：
+- **不存在** → 执行环境检测，结果写入 `.local/env.json`
+- **存在** → 直接读取，跳过检测
+
+检测步骤：
+1. 检查必装工具：`git`、`rg`（ripgrep）
+2. 检查推荐工具：`obsidian`、`pandoc`、Jina Reader API
+3. 记录当前设备信息（hostname、platform、agent 类型）
+4. 缺少必装工具 → 提示用户安装命令
+5. 缺少推荐工具 → 建议安装但不阻断
+
+`.local/env.json` 示例：
+```json
+{
+  "device_name": "oliq-mbp",
+  "platform": "darwin",
+  "agent_platform": "claude-code",
+  "detected_at": "2026-04-12T18:30:00Z",
+  "tools": {
+    "git": { "installed": true, "version": "2.43.0" },
+    "rg": { "installed": true, "version": "14.1.0" },
+    "obsidian": { "installed": true },
+    "pandoc": { "installed": true, "version": "3.1.9" },
+    "graphify": { "installed": false }
+  }
+}
+```
+
+`.local/` 在 `.gitignore` 中，每台设备独立，不跨设备同步。
+
+工具依赖的完整定义见 `schema/wiki-schema.yml` 第 8 节。
+
 ## 详细规范
 完整规范见 `schema/wiki-schema.yml`。

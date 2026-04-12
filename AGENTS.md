@@ -90,5 +90,16 @@ status: active | stale | stub  # 可选
 | 音频/视频 | Whisper 转录 |
 | URL | Jina Reader 转 Markdown |
 
+## 环境检测（首次启动）
+
+每次会话开始时，检查 `.local/env.json` 是否存在：
+- **不存在** → 执行环境检测，结果写入 `.local/env.json`
+- **存在** → 直接读取，跳过检测
+
+检测内容：必装工具（git、rg）、推荐工具（obsidian、pandoc）、设备信息。
+缺少必装工具提示安装，推荐工具建议安装但不阻断。
+
+`.local/` 不进 Git，每台设备独立。详见 `schema/wiki-schema.yml` 第 8-9 节。
+
 ## 详细规范
 完整规范见 `schema/wiki-schema.yml`。

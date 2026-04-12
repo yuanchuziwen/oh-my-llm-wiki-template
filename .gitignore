@@ -26,5 +26,8 @@ graphify-out/cache/
 .idea/
 .vscode/
 
+# 设备本地环境（各设备独立，不同步）
+.local/
+
 # Obsidian 配置（各设备独立）
 .obsidian/
