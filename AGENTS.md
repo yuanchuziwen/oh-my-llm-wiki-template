@@ -8,7 +8,8 @@
 ```
 raw/          ← 原始资料（只读，你绝不修改这里的文件）
 wiki/         ← Wiki 知识库（你负责写入和维护）
-graph/        ← 知识图谱（Graphify 生成，可选）
+graph/        ← 知识图谱（你在 Ingest 时维护，MCP Server 提供查询）
+tools/        ← 工具脚本（graph-server.py 等）
 schema/       ← 规范定义（wiki-schema.yml 是 source of truth）
 ```
 
@@ -45,6 +46,8 @@ status: active | stale | stub  # 可选
 3. 识别并更新/创建相关的 `concepts/`、`entities/`、`areas/` 页面
 4. 更新 `wiki/index.md`
 5. 在 `wiki/log.md` 顶部追加记录
+6. 更新 `graph/graph.json`：追加本次涉及的节点和边（去重）
+7. 更新 `graph/GRAPH_REPORT.md`：重新统计核心节点、孤立节点
 
 规则：
 - 一个资料可能涉及 5-15 个页面
@@ -56,7 +59,7 @@ status: active | stale | stub  # 可选
 当用户提问时：
 1. 先读 `wiki/index.md` 定位相关页面
 2. 深入阅读相关页面
-3. 如有 `graph/graph.json`，查询图谱
+3. 如 `graph/graph.json` 存在，读取图谱辅助发现隐含关联
 4. 综合回答，用 `[[wiki-link]]` 引用具体页面
 5. 有价值的回答存为 `wiki/outputs/` 新页面
 6. 更新 index.md 和 log.md
@@ -64,6 +67,7 @@ status: active | stale | stub  # 可选
 规则：
 - 回答基于 wiki 已有知识，不凭空编造
 - 信息不足时明确告知并建议补充
+- 简单问题直接读 wiki，复杂关联问题才查图谱
 
 ### 3. Lint（健康检查）
 用户说"lint"或"检查"时：
@@ -99,7 +103,15 @@ status: active | stale | stub  # 可选
 检测内容：必装工具（git、rg）、推荐工具（obsidian、pandoc）、设备信息。
 缺少必装工具提示安装，推荐工具建议安装但不阻断。
 
-`.local/` 不进 Git，每台设备独立。详见 `schema/wiki-schema.yml` 第 8-9 节。
+`.local/` 不进 Git，每台设备独立。详见 `schema/wiki-schema.yml` 第 9-10 节。
+
+## 知识图谱
+
+Agent 在 Ingest 时同步维护 `graph/graph.json` 和 `graph/GRAPH_REPORT.md`。
+
+graph.json 节点 `id` 与 wiki 文件名一致（kebab-case）。新增时去重，不主动删除。
+
+详细格式和 MCP 工具说明见 `schema/wiki-schema.yml` 第 6 节。
 
 ## 详细规范
 完整规范见 `schema/wiki-schema.yml`。

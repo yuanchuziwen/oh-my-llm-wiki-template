@@ -12,7 +12,8 @@ alwaysApply: true
 
 - `raw/` — 原始资料（只读，你绝不修改）
 - `wiki/` — Wiki 知识库（你负责写入和维护）
-- `graph/` — 知识图谱（Graphify 生成，可选）
+- `graph/` — 知识图谱（你在 Ingest 时维护）
+- `tools/` — 工具脚本（MCP Server 等）
 - `schema/` — 规范定义
 
 ## 核心规范
@@ -25,8 +26,8 @@ alwaysApply: true
 
 ## 四个核心操作
 
-1. **Ingest**：新资料 → sources 页 + concepts/entities/areas 页 + 更新 index + log
-2. **Query**：先查 index → 读相关页 → 回答引用 wiki-link → 有价值存 outputs
+1. **Ingest**：新资料 → sources 页 + concepts/entities/areas 页 + 更新 index + log + 更新 graph.json + GRAPH_REPORT.md
+2. **Query**：先查 index → 查图谱发现关联 → 读相关页 → 回答引用 wiki-link → 有价值存 outputs
 3. **Lint**：坏链/孤立页/矛盾/缺失概念/知识缺口
 4. **Review**：生成 journal 页（周报/月度/年度）
 

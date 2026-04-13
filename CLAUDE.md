@@ -7,7 +7,8 @@
 ```
 raw/          ← 原始资料（只读，你绝不修改这里的文件）
 wiki/         ← Wiki 知识库（你负责写入和维护）
-graph/        ← 知识图谱（Graphify 生成，可选）
+graph/        ← 知识图谱（你在 Ingest 时维护，MCP Server 提供查询）
+tools/        ← 工具脚本（graph-server.py 等）
 schema/       ← 规范定义（wiki-schema.yml 是 source of truth）
 ```
 
@@ -44,6 +45,9 @@ status: active | stale | stub  # 可选
 3. 识别并更新/创建相关的 `concepts/`、`entities/`、`areas/` 页面
 4. 更新 `wiki/index.md`
 5. 在 `wiki/log.md` 顶部追加记录
+6. 更新 `graph/graph.json`：追加本次涉及的节点和边（去重）
+7. 更新 `graph/GRAPH_REPORT.md`：重新统计核心节点、孤立节点
+8. 如 MCP wiki-graph 可用，调用 `reload` 工具刷新内存
 
 规则：
 - 一个资料可能涉及 5-15 个页面
@@ -55,20 +59,25 @@ status: active | stale | stub  # 可选
 当用户提问时：
 1. 先读 `wiki/index.md` 定位相关页面
 2. 深入阅读相关页面
-3. 如有 `graph/graph.json`，查询图谱
-4. 综合回答，用 `[[wiki-link]]` 引用具体页面
-5. 有价值的回答存为 `wiki/outputs/` 新页面
-6. 更新 index.md 和 log.md
+3. 如 MCP wiki-graph 可用，调用图谱工具辅助：
+   - `get_neighbors`：扩展搜索范围，发现关联页面
+   - `shortest_path`：发现两个概念之间的隐含关联链
+   - `top_nodes`：了解知识库全局重点
+4. 如 MCP 不可用但 `graph/graph.json` 存在，直接读取文件查询
+5. 综合回答，用 `[[wiki-link]]` 引用具体页面
+6. 有价值的回答存为 `wiki/outputs/` 新页面
+7. 更新 index.md 和 log.md
 
 规则：
 - 回答基于 wiki 已有知识，不凭空编造
 - 信息不足时明确告知并建议补充
+- 简单问题直接读 wiki，复杂关联问题才查图谱
 
 ### 3. Lint（健康检查）
 用户说"lint"或"检查"时：
 - **轻量检查**：坏链、孤立页面、index 一致性、frontmatter 完整性
 - **深度检查**：页面间矛盾、过时信息、stub 补全、缺失概念
-- **生长检查**：跨页面关联发现、知识缺口、综述建议
+- **生长检查**：跨页面关联发现、知识缺口、综述建议、图谱孤立节点、核心节点过载检测
 
 ### 4. Review（定期回顾）
 用户说"回顾"或"review"时：
@@ -121,7 +130,37 @@ status: active | stale | stub  # 可选
 
 `.local/` 在 `.gitignore` 中，每台设备独立，不跨设备同步。
 
-工具依赖的完整定义见 `schema/wiki-schema.yml` 第 8 节。
+工具依赖的完整定义见 `schema/wiki-schema.yml` 第 9 节。
+
+## 知识图谱
+
+Agent 在 Ingest 时同步维护 `graph/graph.json`（节点 + 边）和 `graph/GRAPH_REPORT.md`（统计摘要）。
+
+### graph.json 格式
+
+```json
+{
+  "directed": false,
+  "nodes": [
+    { "id": "llm-wiki", "label": "LLM Wiki", "type": "concept", "wiki_path": "concepts/llm-wiki.md", "description": "..." }
+  ],
+  "links": [
+    { "source": "llm-wiki", "target": "rag", "relation": "替代方案", "source_file": "sources/karpathy-llm-wiki.md" }
+  ]
+}
+```
+
+- 节点 `id` 与 wiki 文件名一致（kebab-case，不含目录前缀和 .md）
+- 新增节点/边时按 id 或 source+target 去重
+- 不主动删除节点和边
+
+### MCP Server
+
+`tools/graph-server.py` 提供 6 个查询工具：`get_neighbors`、`shortest_path`、`top_nodes`、`graph_stats`、`get_node`、`reload`。
+
+配置在 `.claude/mcp.json` 中，Claude Code 启动时自动拉起进程。graph.json 不存在时返回空结果，不阻断任何操作。
+
+详细规范见 `schema/wiki-schema.yml` 第 6 节。
 
 ## 详细规范
 完整规范见 `schema/wiki-schema.yml`。

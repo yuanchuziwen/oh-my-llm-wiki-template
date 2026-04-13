@@ -36,10 +36,15 @@ structure:
       journal:   "时间线 — 周报、月度回顾、年度总结"
 
   graph:
-    description: "知识图谱层（可选，Graphify 生成）"
+    description: "知识图谱层（Agent 在 Ingest 时维护，MCP Server 提供查询）"
     files:
-      - graph.json:       "结构化图谱，支持遍历查询"
-      - GRAPH_REPORT.md:  "图谱摘要，god nodes + 社区结构"
+      - graph.json:       "结构化图谱（NetworkX node-link 格式），Agent Ingest 时更新"
+      - GRAPH_REPORT.md:  "图谱摘要：核心节点、孤立节点、最近更新"
+
+  tools:
+    description: "工具脚本（MCP Server 等）"
+    files:
+      - graph-server.py:  "知识图谱 MCP Server，基于 NetworkX，Agent 平台自动管理进程"
 
   schema:
     description: "Schema 层（规范和配置，各平台 mapper 文件）"
@@ -187,6 +192,9 @@ operations:
       - "识别涉及的生活领域，更新 wiki/areas/ 页面（如适用）"
       - "更新 wiki/index.md"
       - "在 wiki/log.md 顶部追加操作记录"
+      - "更新 graph/graph.json：追加本次涉及的节点和边（去重）"
+      - "更新 graph/GRAPH_REPORT.md：重新统计核心节点、孤立节点等"
+      - "如 MCP Server 正在运行，调用 reload 工具刷新内存"
     rules:
       - "一个资料可能涉及 5-15 个页面的创建或更新"
       - "更新已有页面时，保留原有内容，在相关章节补充新信息"
@@ -198,7 +206,8 @@ operations:
     steps:
       - "先读 wiki/index.md 定位相关页面"
       - "深入阅读相关页面"
-      - "如存在 graph/graph.json，查询图谱发现隐含关联"
+      - "如 MCP wiki-graph 可用，调用 get_neighbors / shortest_path 等工具发现隐含关联"
+      - "如 MCP 不可用但 graph/graph.json 存在，直接读取文件查询"
       - "综合回答，引用具体 wiki 页面（使用 [[link]] 格式）"
       - "如回答有独立价值，存为 wiki/outputs/ 新页面"
       - "更新 wiki/index.md 和 wiki/log.md"
@@ -233,6 +242,8 @@ operations:
           - "跨页面隐含关联发现"
           - "知识缺口识别：哪些领域资料稀薄"
           - "综述建议：哪些主题已有足够资料可生成综述"
+          - "图谱孤立节点：通过 graph_stats 检查无关联的知识页面"
+          - "核心节点过载：通过 top_nodes 检查连接度过高的概念，建议拆分"
 
   review:
     description: "定期知识回顾，生成 journal 页面"
@@ -275,7 +286,55 @@ sync:
       description: "Agent 无法判断时，标记为待解决，下次会话提示用户"
 
 # ---------------------------------------------------------------------------
-# 6. 多模态处理
+# 6. 知识图谱规范
+# ---------------------------------------------------------------------------
+graph:
+  description: "Agent 在 Ingest 时维护图谱，MCP Server 提供按需查询"
+
+  graph_json:
+    format: "NetworkX node-link JSON"
+    node_fields:
+      id:          "string — 唯一标识，与 wiki 文件名一致（kebab-case）"
+      label:       "string — 显示名称"
+      type:        "string — concept | entity | area"
+      wiki_path:   "string — 对应的 wiki 页面路径（如 concepts/llm-wiki.md）"
+      description: "string — 一句话描述"
+    edge_fields:
+      source:      "string — 起始节点 id"
+      target:      "string — 目标节点 id"
+      relation:    "string — 关系描述（如"提出者"、"替代方案"、"属于"）"
+      source_file: "string — 关系来源的 wiki 页面路径"
+    rules:
+      - "节点 id 与 wiki 文件名一致（去掉目录前缀和 .md 后缀）"
+      - "新增节点/边时去重（按 id 或 source+target 判断）"
+      - "不主动删除节点和边（wiki 页面很少删除）"
+      - "如果 wiki 页面标题或描述变更，同步更新对应节点"
+
+  graph_report:
+    file: "graph/GRAPH_REPORT.md"
+    description: "Agent 生成的图谱摘要，每次 Ingest 后更新"
+    sections:
+      - "核心节点（连接度 Top 10）"
+      - "孤立节点（连接度 = 0）"
+      - "最近更新"
+
+  mcp_server:
+    file: "tools/graph-server.py"
+    description: "MCP Server，平台自动管理进程，提供 6 个查询工具"
+    tools:
+      - get_neighbors:  "查询某节点的关联节点（1-N 跳）"
+      - shortest_path:  "查询两节点间最短路径"
+      - top_nodes:      "返回连接度最高的核心节点"
+      - graph_stats:    "返回图谱统计信息"
+      - get_node:       "返回单个节点详情"
+      - reload:         "重新加载 graph.json（Ingest 后调用）"
+    config_files:
+      - ".claude/mcp.json — Claude Code"
+      - ".cursor/mcp.json — Cursor"
+    degradation: "graph.json 不存在时返回空结果，不阻断其他操作"
+
+# ---------------------------------------------------------------------------
+# 7. 多模态处理
 # ---------------------------------------------------------------------------
 multimodal:
   markdown:  "直接读取"
@@ -287,7 +346,7 @@ multimodal:
   url:       "Jina Reader (r.jina.ai) 转 Markdown → 文本处理"
 
 # ---------------------------------------------------------------------------
-# 7. 平台 Mapper 配置
+# 8. 平台 Mapper 配置
 # ---------------------------------------------------------------------------
 mappers:
   claude_code:
@@ -312,7 +371,7 @@ mappers:
       - "Trae"
 
 # ---------------------------------------------------------------------------
-# 8. 工具依赖
+# 9. 工具依赖
 # ---------------------------------------------------------------------------
 # 声明式定义，Agent 在新设备首次启动时检测并记录到 .local/env.json
 tooling:
@@ -350,12 +409,12 @@ tooling:
       install: "无需安装，免费 API：https://r.jina.ai/{url}"
 
   optional:
-    graphify:
-      purpose: "知识图谱生成"
-      check: "python3 -c 'import graphify' 2>/dev/null"
+    networkx:
+      purpose: "知识图谱 MCP Server 依赖"
+      check: "python3 -c 'import networkx' 2>/dev/null"
       install:
-        all: "pip install graphifyy"
-      when: "想要知识图谱增强时"
+        all: "pip install networkx"
+      when: "需要图谱查询增强时（graph-server.py 运行依赖）"
     qmd:
       purpose: "本地语义搜索（BM25 + 向量混合）"
       check: "qmd --version"
@@ -376,7 +435,7 @@ tooling:
       when: "有学术论文管理需求时"
 
 # ---------------------------------------------------------------------------
-# 9. 环境检测
+# 10. 环境检测
 # ---------------------------------------------------------------------------
 # Agent 首次在新设备启动时自动执行，结果存入 .local/env.json
 environment:

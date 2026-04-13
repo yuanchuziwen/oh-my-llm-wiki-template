@@ -19,8 +19,9 @@ raw/**/*.jpeg
 raw/**/*.gif
 raw/**/*.webp
 
-# Graphify 缓存
-graphify-out/cache/
+# Python 缓存
+__pycache__/
+*.pyc
 
 # IDE
 .idea/
