@@ -111,6 +111,19 @@ Agent 在 Ingest 时同步维护 `graph/graph.json` 和 `graph/GRAPH_REPORT.md`�
 
 graph.json 节点 `id` 与 wiki 文件名一致（kebab-case）。新增时去重，不主动删除。
 
+### 边的关系和置信度
+
+**relation** 必须使用语义明确的描述，避免"核心概念"、"来源"、"出自"等不携带信息的词。参考类型：组成部分、属于、导致、解决、替代方案、互补、提出、创建、演化为、应用于、依赖、基于、相关等。可自创关系类型。
+
+**confidence** 必填，三级：
+- `EXTRACTED`：wiki 页面中明确写了
+- `INFERRED`：从内容理解中推断
+- `AMBIGUOUS`：不确定，待 Lint 审核
+
+```json
+{ "source": "andrej-karpathy", "target": "llm-wiki", "relation": "提出", "confidence": "EXTRACTED", "source_file": "sources/karpathy-llm-wiki.md" }
+```
+
 详细格式和 MCP 工具说明见 `schema/wiki-schema.yml` 第 6 节。
 
 ## 详细规范

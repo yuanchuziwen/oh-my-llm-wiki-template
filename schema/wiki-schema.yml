@@ -302,13 +302,34 @@ graph:
     edge_fields:
       source:      "string — 起始节点 id"
       target:      "string — 目标节点 id"
-      relation:    "string — 关系描述（如"提出者"、"替代方案"、"属于"）"
+      relation:    "string — 语义化关系描述（见 reference_relation_types）"
+      confidence:  "enum   — EXTRACTED | INFERRED | AMBIGUOUS"
       source_file: "string — 关系来源的 wiki 页面路径"
+
+    # 置信度说明
+    confidence_levels:
+      EXTRACTED: "wiki 页面中明确写了这个关系（wiki-link、frontmatter related、正文明确描述）"
+      INFERRED:  "Agent 从内容理解中推断（两个概念在同一资料中讨论但未直接互引）"
+      AMBIGUOUS: "不确定的关联（可能相关但证据不足，标记待 Lint 审核）"
+
+    # 参考关系类型（Agent 可自创类型，不限于此列表，但应避免使用"来源"、"文档"等不携带信息的词）
+    reference_relation_types:
+      结构性: ["组成部分", "属于", "包含"]
+      因果性: ["导致", "解决", "驱动"]
+      对比性: ["替代方案", "对比", "互补"]
+      来源性: ["提出", "创建", "贡献"]
+      演化性: ["演化为", "升级", "取代"]
+      应用性: ["应用于", "实践", "案例"]
+      依赖性: ["依赖", "前置条件", "基于"]
+      关联性: ["相关", "类似", "跨域关联"]
+
     rules:
       - "节点 id 与 wiki 文件名一致（去掉目录前缀和 .md 后缀）"
       - "新增节点/边时去重（按 id 或 source+target 判断）"
       - "不主动删除节点和边（wiki 页面很少删除）"
       - "如果 wiki 页面标题或描述变更，同步更新对应节点"
+      - "relation 必须使用语义明确的描述，避免'核心概念'、'出自'等不携带信息的词"
+      - "confidence 必填：wiki 明确写的用 EXTRACTED，推断的用 INFERRED，不确定的用 AMBIGUOUS"
 
   graph_report:
     file: "graph/GRAPH_REPORT.md"
@@ -317,15 +338,18 @@ graph:
       - "核心节点（连接度 Top 10）"
       - "孤立节点（连接度 = 0）"
       - "最近更新"
+      - "跨领域关联（连接不同 type 的边）"
+      - "待审关系（AMBIGUOUS 置信度的边）"
+      - "知识缺口（度数 ≤ 1 的节点）"
 
   mcp_server:
     file: "tools/graph-server.py"
     description: "MCP Server，平台自动管理进程，提供 6 个查询工具"
     tools:
-      - get_neighbors:  "查询某节点的关联节点（1-N 跳）"
+      - get_neighbors:  "查询某节点的关联节点（1-N 跳），可选 confidence 过滤"
       - shortest_path:  "查询两节点间最短路径"
       - top_nodes:      "返回连接度最高的核心节点"
-      - graph_stats:    "返回图谱统计信息"
+      - graph_stats:    "返回图谱统计信息（含置信度分布）"
       - get_node:       "返回单个节点详情"
       - reload:         "重新加载 graph.json（Ingest 后调用）"
     config_files:

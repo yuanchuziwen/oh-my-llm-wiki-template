@@ -215,11 +215,11 @@ Graphify 将**低度数节点**（degree ≤ 1 且没有 source_location）标�
 
 ### 立即可做（schema 和 prompt 层面的变化）
 
-- [ ] 更新 `wiki-schema.yml`：graph.json 边增加 `confidence` 字段定义
-- [ ] 更新 `wiki-schema.yml`：添加参考关系类型列表
-- [ ] 更新 `CLAUDE.md` / `AGENTS.md`：引导 Agent 使用语义化关系和置信度
-- [ ] 更新 `tools/graph-server.py`：`get_neighbors` 支持 confidence 过滤
-- [ ] 更新现有 `graph.json`：给已有边补充 `confidence: "EXTRACTED"`
+- [x] 更新 `wiki-schema.yml`：graph.json 边增加 `confidence` 字段定义
+- [x] 更新 `wiki-schema.yml`：添加参考关系类型列表
+- [x] 更新 `CLAUDE.md` / `AGENTS.md`：引导 Agent 使用语义化关系和置信度
+- [x] 更新 `tools/graph-server.py`：`get_neighbors` 支持 confidence 过滤
+- [ ] 更新现有 `graph.json`：给已有边补充 `confidence: "EXTRACTED"`（当前 graph.json 为空，下次 Ingest 时自动生效）
 
 ### 下次 Lint 时验证
 

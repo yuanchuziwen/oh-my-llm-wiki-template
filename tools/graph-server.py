@@ -63,11 +63,12 @@ def _empty_notice() -> str:
 
 
 def handle_get_neighbors(arguments: dict) -> str:
-    """查询某节点的关联节点（1-N 跳）。"""
+    """查询某节点的关联节点（1-N 跳），可选按置信度过滤。"""
     if G is None:
         return _empty_notice()
     node_id = arguments["node_id"]
     depth = arguments.get("depth", 1)
+    min_confidence = arguments.get("min_confidence")
     if node_id not in G:
         return f"节点 '{node_id}' 不存在于图谱中。"
     subgraph = nx.ego_graph(G, node_id, radius=depth)
@@ -77,9 +78,14 @@ def handle_get_neighbors(arguments: dict) -> str:
             continue
         attrs = dict(G.nodes[n])
         neighbors.append({"id": n, **attrs})
+    # 置信度过滤
+    confidence_rank = {"EXTRACTED": 3, "INFERRED": 2, "AMBIGUOUS": 1}
+    min_rank = confidence_rank.get(min_confidence, 0) if min_confidence else 0
     edges = []
     for u, v, data in subgraph.edges(data=True):
-        edges.append({"source": u, "target": v, **data})
+        edge_conf = data.get("confidence", "EXTRACTED")
+        if confidence_rank.get(edge_conf, 0) >= min_rank:
+            edges.append({"source": u, "target": v, **data})
     return json.dumps(
         {"center": node_id, "depth": depth, "neighbors": neighbors, "edges": edges},
         ensure_ascii=False,
@@ -126,7 +132,7 @@ def handle_top_nodes(arguments: dict) -> str:
 
 
 def handle_graph_stats(arguments: dict) -> str:
-    """返回图谱统计信息。"""
+    """返回图谱统计信息（含置信度分布）。"""
     if G is None:
         return _empty_notice()
     isolated = list(nx.isolates(G))
@@ -134,12 +140,18 @@ def handle_graph_stats(arguments: dict) -> str:
     for _, data in G.nodes(data=True):
         t = data.get("type", "unknown")
         type_counts[t] = type_counts.get(t, 0) + 1
+    # 置信度分布
+    confidence_counts: dict[str, int] = {}
+    for _, _, data in G.edges(data=True):
+        c = data.get("confidence", "EXTRACTED")
+        confidence_counts[c] = confidence_counts.get(c, 0) + 1
     return json.dumps(
         {
             "nodes": G.number_of_nodes(),
             "edges": G.number_of_edges(),
             "isolated_nodes": len(isolated),
             "node_types": type_counts,
+            "confidence_distribution": confidence_counts,
             "density": round(nx.density(G), 4),
         },
         ensure_ascii=False,
@@ -199,12 +211,17 @@ async def list_tools() -> list[types.Tool]:
     return [
         types.Tool(
             name="get_neighbors",
-            description="查询某节点的关联节点（1-N 跳）。输入节点 ID，返回邻居节点和关联边。",
+            description="查询某节点的关联节点（1-N 跳）。输入节点 ID，返回邻居节点和关联边。可选按置信度过滤。",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "node_id": {"type": "string", "description": "节点 ID（与 wiki 文件名一致，如 llm-wiki）"},
                     "depth": {"type": "integer", "description": "查询深度（跳数），默认 1", "default": 1},
+                    "min_confidence": {
+                        "type": "string",
+                        "enum": ["EXTRACTED", "INFERRED", "AMBIGUOUS"],
+                        "description": "最低置信度过滤：EXTRACTED 只返回明确关系，INFERRED 包含推断，AMBIGUOUS 返回全部",
+                    },
                 },
                 "required": ["node_id"],
             },
@@ -233,7 +250,7 @@ async def list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="graph_stats",
-            description="返回图谱统计信息：节点数、边数、孤立节点、密度等。",
+            description="返回图谱统计信息：节点数、边数、孤立节点、密度、置信度分布等。",
             inputSchema={
                 "type": "object",
                 "properties": {},

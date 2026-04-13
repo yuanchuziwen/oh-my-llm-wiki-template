@@ -31,6 +31,11 @@ alwaysApply: true
 3. **Lint**：坏链/孤立页/矛盾/缺失概念/知识缺口
 4. **Review**：生成 journal 页（周报/月度/年度）
 
+## 知识图谱边规范
+
+- **relation**：使用语义化描述（组成部分、导致、替代方案、提出、应用于、依赖等），避免"核心概念"、"来源"等模糊词
+- **confidence**：必填。`EXTRACTED`（明确写了）/ `INFERRED`（推断）/ `AMBIGUOUS`（不确定）
+
 ## 规则
 
 - 绝不修改 raw/ 中的文件

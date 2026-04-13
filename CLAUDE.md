@@ -145,7 +145,8 @@ Agent 在 Ingest 时同步维护 `graph/graph.json`（节点 + 边）和 `graph/
     { "id": "llm-wiki", "label": "LLM Wiki", "type": "concept", "wiki_path": "concepts/llm-wiki.md", "description": "..." }
   ],
   "links": [
-    { "source": "llm-wiki", "target": "rag", "relation": "替代方案", "source_file": "sources/karpathy-llm-wiki.md" }
+    { "source": "andrej-karpathy", "target": "llm-wiki", "relation": "提出", "confidence": "EXTRACTED", "source_file": "sources/karpathy-llm-wiki.md" },
+    { "source": "llm-wiki", "target": "rag", "relation": "替代方案", "confidence": "INFERRED", "source_file": "sources/karpathy-llm-wiki.md" }
   ]
 }
 ```
@@ -154,9 +155,28 @@ Agent 在 Ingest 时同步维护 `graph/graph.json`（节点 + 边）和 `graph/
 - 新增节点/边时按 id 或 source+target 去重
 - 不主动删除节点和边
 
+### 边的关系和置信度
+
+**relation** 必须使用语义明确的描述，避免"核心概念"、"来源"、"出自"等不携带信息的词。参考类型：
+- 结构性：组成部分、属于、包含
+- 因果性：导致、解决、驱动
+- 对比性：替代方案、对比、互补
+- 来源性：提出、创建、贡献
+- 演化性：演化为、升级、取代
+- 应用性：应用于、实践、案例
+- 依赖性：依赖、前置条件、基于
+- 关联性：相关、类似、跨域关联
+
+可自创关系类型，不限于以上列表。
+
+**confidence** 必填，三级：
+- `EXTRACTED`：wiki 页面中明确写了（wiki-link、frontmatter related、正文明确描述）
+- `INFERRED`：从内容理解中推断（同一资料中讨论但未直接互引）
+- `AMBIGUOUS`：不确定的关联（可能相关但证据不足，待 Lint 审核）
+
 ### MCP Server
 
-`tools/graph-server.py` 提供 6 个查询工具：`get_neighbors`、`shortest_path`、`top_nodes`、`graph_stats`、`get_node`、`reload`。
+`tools/graph-server.py` 提供 6 个查询工具：`get_neighbors`（支持 confidence 过滤）、`shortest_path`、`top_nodes`、`graph_stats`（含置信度分布）、`get_node`、`reload`。
 
 配置在 `.claude/mcp.json` 中，Claude Code 启动时自动拉起进程。graph.json 不存在时返回空结果，不阻断任何操作。
 
