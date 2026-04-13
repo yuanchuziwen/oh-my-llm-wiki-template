@@ -11,7 +11,8 @@
 ```
 raw/          → 原始资料（只读，Agent 不修改）
 wiki/         → 结构化 Markdown 知识库（Agent 写入和维护）
-graph/        → 知识图谱（可选，Graphify 驱动）
+graph/        → 知识图谱（Agent 在 Ingest 时维护，MCP Server 提供查询）
+tools/        → 工具脚本（graph-server.py MCP Server 等）
 schema/       → Schema 定义和平台 Mapper
 ```
 
@@ -44,12 +45,14 @@ schema/       → Schema 定义和平台 Mapper
 1. 在 `wiki/sources/` 创建摘要页
 2. 创建或更新 `wiki/concepts/` 和 `wiki/entities/` 页面
 3. 更新 `wiki/index.md` 和 `wiki/log.md`
+4. 更新 `graph/graph.json`（追加节点和边）
+5. 更新 `graph/GRAPH_REPORT.md`（统计摘要）
 
 一篇资料可能涉及 5–15 个 wiki 页面的创建或更新。
 
 ### 查询（Query）
 
-向 Agent 提问。它先读 `wiki/index.md` 定位相关页面，深入阅读后用 `[[wiki-link]]` 引用回答。有价值的回答会存为 `wiki/outputs/` 页面。
+向 Agent 提问。它先读 `wiki/index.md` 定位相关页面，通过知识图谱 MCP Server 发现隐含关联，深入阅读后用 `[[wiki-link]]` 引用回答。有价值的回答会存为 `wiki/outputs/` 页面。
 
 ### 健康检查（Lint）
 
@@ -57,7 +60,7 @@ schema/       → Schema 定义和平台 Mapper
 
 - **轻量** — 坏链、孤立页面、索引一致性（确定性脚本，零 token）
 - **深度** — 矛盾检测、过时信息、stub 补全、缺失概念（LLM Agent）
-- **生长** — 跨页面关联发现、知识缺口、综述建议（定期执行）
+- **生长** — 跨页面关联发现、知识缺口、综述建议、图谱孤立/过载检测（定期执行）
 
 ### 回顾（Review）
 
@@ -97,6 +100,7 @@ cd ~/llm-wiki && claude
 | [Obsidian](https://obsidian.md) | 浏览 wiki（`wiki/` 目录直接作为 vault） | `brew install --cask obsidian` |
 | Pandoc | 格式转换 | `brew install pandoc` |
 | [Jina Reader](https://r.jina.ai) | URL → Markdown | 免费 API，无需安装 |
+| networkx + mcp | 知识图谱 MCP Server 依赖 | `pip install networkx mcp` |
 
 ### 5. 验证是否正常工作
 
@@ -119,6 +123,8 @@ curl -sL "https://r.jina.ai/https://gist.github.com/karpathy/442a6bf555914893e98
 - [ ] 创建了 `wiki/entities/andrej-karpathy.md`
 - [ ] 更新了 `wiki/index.md`，收录所有新页面
 - [ ] 在 `wiki/log.md` 追加了 ingest 记录
+- [ ] 更新了 `graph/graph.json`（节点和边）
+- [ ] 更新了 `graph/GRAPH_REPORT.md`（统计摘要）
 - [ ] 所有页面有正确的 YAML frontmatter 和 `[[wiki-links]]` 互引
 
 再测试一次查询：
@@ -195,13 +201,35 @@ llm-wiki/
 │   ├── outputs/
 │   ├── areas/
 │   └── journal/
-├── graph/                       # 知识图谱（可选）
+├── graph/                       # 知识图谱（Agent 维护）
+│   ├── graph.json               # 结构化图谱（NetworkX node-link 格式）
+│   └── GRAPH_REPORT.md          # 图谱统计与核心节点
+├── tools/                       # 工具脚本
+│   └── graph-server.py          # 知识图谱 MCP Server
+├── docs/                        # 设计文档
 ├── schema/
 │   ├── wiki-schema.yml          # Single Source of Truth
 │   └── .cursor/rules/wiki.mdc  # Cursor Mapper
 └── .local/                      # 设备本地环境（不同步）
     └── env.json
 ```
+
+## 知识图谱
+
+Agent 在 Ingest 时自动构建知识图谱——不需要外部工具，不产生额外 LLM 调用。Agent 在写 wiki 页面时已经理解了内容中的实体和关系，只需顺手写入 `graph/graph.json`。
+
+轻量 MCP Server（`tools/graph-server.py`）将图谱加载到内存，提供 6 个查询工具：
+
+| 工具 | 用途 |
+|---|---|
+| `get_neighbors` | 查询关联节点（1-N 跳） |
+| `shortest_path` | 发现两个概念之间的隐含关联链 |
+| `top_nodes` | 识别知识库中最核心的概念 |
+| `graph_stats` | 图谱健康度指标 |
+| `get_node` | 节点详情和关联边 |
+| `reload` | Ingest 后刷新内存数据 |
+
+MCP Server 由 Agent 平台自动管理——在 `.claude/mcp.json` 或 `.cursor/mcp.json` 中配置一次，打开项目时自动启动，关闭时自动停止。graph.json 不存在时所有工具优雅降级，返回空结果。
 
 ## 灵感来源
 
