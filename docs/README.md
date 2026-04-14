@@ -10,6 +10,7 @@
 | [requirements.html](requirements.html) | 需求文档 HTML 版本（可在浏览器中阅读） | 已完成 |
 | [knowledge-graph-design.md](knowledge-graph-design.md) | 知识图谱设计 — 自建图谱 + MCP Server 方案 | 已实现 |
 | [graph-optimization.md](graph-optimization.md) | 图谱优化 — 从 Graphify 源码中学到的（语义化关系、置信度、跨域关联） | 待 review |
+| [productization.md](productization.md) | 产品化路线 — CLI → 插件 → 桌面 App → SaaS 四阶段 | 设计中 |
 
 ## 里程碑进度
 
